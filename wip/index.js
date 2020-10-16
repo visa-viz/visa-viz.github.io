@@ -1062,10 +1062,10 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5549088,
+var STACK_BASE = 5562592,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 306208,
-    DYNAMIC_BASE = 5549088;
+    STACK_MAX = 319712,
+    DYNAMIC_BASE = 5562592;
 
 
 
@@ -1629,10 +1629,10 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  12476: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
- 18880: function() {return STACK_BASE;},  
- 18903: function() {return STACK_MAX;},  
- 32716: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
+  14332: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
+ 20736: function() {return STACK_BASE;},  
+ 20759: function() {return STACK_MAX;},  
+ 34572: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
 };
 
 
@@ -1860,7 +1860,7 @@ var ASM_CONSTS = {
           var measureCanvas = document.createElement('canvas');
           var measureCtx = measureCanvas.getContext('2d');
   
-          var fontStyle = (bold ? 'bold ' : '') + fontSize + 'px system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif';
+          var fontStyle = (bold ? 'bold ' : '') + fontSize + 'px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif';
           measureCtx.font = fontStyle;
           var text = String.fromCodePoint(unicodeChar);
           var textMetrics = measureCtx.measureText(text);
@@ -3482,7 +3482,7 @@ var __growWasmMemory = Module["__growWasmMemory"] = function() {
   return (__growWasmMemory = Module["__growWasmMemory"] = Module["asm"]["__growWasmMemory"]).apply(null, arguments);
 };
 
-Module['___heap_base'] = 5549088;
+Module['___heap_base'] = 5562592;
 Module['___global_base'] = 1024;
 
 
