@@ -480,8 +480,8 @@ var wasmMemory;
 // so this creates a (non-native-wasm) table for us.
 
 var wasmTable = new WebAssembly.Table({
-  'initial': 39,
-  'maximum': 39,
+  'initial': 40,
+  'maximum': 40,
   'element': 'anyfunc'
 });
 
@@ -1062,10 +1062,10 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5562592,
+var STACK_BASE = 5567968,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 319712,
-    DYNAMIC_BASE = 5562592;
+    STACK_MAX = 325088,
+    DYNAMIC_BASE = 5567968;
 
 
 
@@ -1629,10 +1629,10 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  14332: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
- 20736: function() {return STACK_BASE;},  
- 20759: function() {return STACK_MAX;},  
- 34572: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
+  20320: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
+ 26728: function() {return STACK_BASE;},  
+ 26751: function() {return STACK_MAX;},  
+ 40556: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
 };
 
 
@@ -1856,16 +1856,18 @@ var ASM_CONSTS = {
           img.src = UTF8ToString(url);
       }
 
-  function __jsUploadUnicodeCharToTexture(unicodeChar, fontSize, bold, r, g, b, outCharWidth, outCharBaseline, outTextureWidth, outTextureHeight) {
+  function __jsUploadUnicodeCharToTexture(unicodeChar, fontSize, bold, r, g, b, outCharWidth, outCharMiddleBaseline, outTextureWidth, outTextureHeight) {
           var measureCanvas = document.createElement('canvas');
           var measureCtx = measureCanvas.getContext('2d');
   
           var fontStyle = (bold ? 'bold ' : '') + fontSize + 'px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif';
+          var textBaseline = 'middle';
           measureCtx.font = fontStyle;
+          measureCtx.textBaseline = textBaseline;
           var text = String.fromCodePoint(unicodeChar);
           var textMetrics = measureCtx.measureText(text);
-          var charBaseline = textMetrics.actualBoundingBoxAscent;
-          var charY = Math.ceil(charBaseline);
+          var charMiddleBaseline = textMetrics.actualBoundingBoxAscent;
+          var charY = Math.ceil(charMiddleBaseline);
           var charWidth = textMetrics.width;
   
           var canvas = document.createElement('canvas');
@@ -1879,6 +1881,7 @@ var ASM_CONSTS = {
           ctx.globalAlpha = 1;
           ctx.fillStyle = `rgb(${r * 255} ${g * 255} ${b * 255})`;
           ctx.font = fontStyle;
+          ctx.textBaseline = textBaseline;
           ctx.fillText(text, 0, charY);
   
           if (false) // Enable for debugging
@@ -1892,7 +1895,7 @@ var ASM_CONSTS = {
           _uploadFlipped(canvas);
   
           HEAPF32[outCharWidth >> 2] = charWidth;
-          HEAPF32[outCharBaseline >> 2] = charBaseline;
+          HEAPF32[outCharMiddleBaseline >> 2] = charMiddleBaseline;
           HEAPF32[outTextureWidth >> 2] = canvas.width;
           HEAPF32[outTextureHeight >> 2] = canvas.height;
       }
@@ -3482,7 +3485,7 @@ var __growWasmMemory = Module["__growWasmMemory"] = function() {
   return (__growWasmMemory = Module["__growWasmMemory"] = Module["asm"]["__growWasmMemory"]).apply(null, arguments);
 };
 
-Module['___heap_base'] = 5562592;
+Module['___heap_base'] = 5567968;
 Module['___global_base'] = 1024;
 
 
