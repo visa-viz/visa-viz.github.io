@@ -480,8 +480,8 @@ var wasmMemory;
 // so this creates a (non-native-wasm) table for us.
 
 var wasmTable = new WebAssembly.Table({
-  'initial': 39,
-  'maximum': 39,
+  'initial': 41,
+  'maximum': 41,
   'element': 'anyfunc'
 });
 
@@ -1062,10 +1062,10 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5592416,
+var STACK_BASE = 5601312,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 349536,
-    DYNAMIC_BASE = 5592416;
+    STACK_MAX = 358432,
+    DYNAMIC_BASE = 5601312;
 
 
 
@@ -1629,10 +1629,10 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  23104: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
- 29512: function() {return STACK_BASE;},  
- 29535: function() {return STACK_MAX;},  
- 43340: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
+  25168: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
+ 31576: function() {return STACK_BASE;},  
+ 31599: function() {return STACK_MAX;},  
+ 45404: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
 };
 
 
@@ -1854,6 +1854,14 @@ var ASM_CONSTS = {
               debugger;
           }
           img.src = UTF8ToString(url);
+      }
+
+  function __jsSetCursor(type) {
+          var typeStr = ['grab', 'grabbing'][type];
+          if (typeStr === undefined) {
+              console.error('cursor type is undefined:', type);
+          }
+          document.getElementById("canvas").style.cursor = typeStr;
       }
 
   function __jsUploadUnicodeCharToTexture(unicodeChar, fontSize, bold, r, g, b, outCharWidth, outCharMiddleBaseline, outTextureWidth, outTextureHeight) {
@@ -2086,6 +2094,35 @@ var ASM_CONSTS = {
          ;
       }};
   
+  function __setLetterbox(element, topBottom, leftRight) {
+        // Cannot use margin to specify letterboxes in FF or Chrome, since those ignore margins in fullscreen mode.
+        element.style.paddingLeft = element.style.paddingRight = leftRight + 'px';
+        element.style.paddingTop = element.style.paddingBottom = topBottom + 'px';
+    }
+  
+  function __hideEverythingExceptGivenElement(onlyVisibleElement) {
+      var child = onlyVisibleElement;
+      var parent = child.parentNode;
+      var hiddenElements = [];
+      while (child != document.body) {
+        var children = parent.children;
+        for (var i = 0; i < children.length; ++i) {
+          if (children[i] != child) {
+            hiddenElements.push({ node: children[i], displayState: children[i].style.display });
+            children[i].style.display = 'none';
+          }
+        }
+        child = parent;
+        parent = parent.parentNode;
+      }
+      return hiddenElements;
+    }
+  
+  var __restoreOldWindowedStyle=null;
+  
+  
+  
+  
   
   
   function maybeCStringToJsString(cString) {
@@ -2105,7 +2142,277 @@ var ASM_CONSTS = {
       if (!canvas) return -4;
       HEAP32[((width)>>2)]=canvas.width;
       HEAP32[((height)>>2)]=canvas.height;
+    }function __get_canvas_element_size(target) {
+      var stackTop = stackSave();
+      var w = stackAlloc(8);
+      var h = w + 4;
+  
+      var targetInt = stackAlloc(target.id.length+1);
+      stringToUTF8(target.id, targetInt, target.id.length+1);
+      var ret = _emscripten_get_canvas_element_size(targetInt, w, h);
+      var size = [HEAP32[((w)>>2)], HEAP32[((h)>>2)]];
+      stackRestore(stackTop);
+      return size;
     }
+  
+  
+  function _emscripten_set_canvas_element_size(target, width, height) {
+      var canvas = findCanvasEventTarget(target);
+      if (!canvas) return -4;
+      canvas.width = width;
+      canvas.height = height;
+      return 0;
+    }function __set_canvas_element_size(target, width, height) {
+      if (!target.controlTransferredOffscreen) {
+        target.width = width;
+        target.height = height;
+      } else {
+        // This function is being called from high-level JavaScript code instead of asm.js/Wasm,
+        // and it needs to synchronously proxy over to another thread, so marshal the string onto the heap to do the call.
+        var stackTop = stackSave();
+        var targetInt = stackAlloc(target.id.length+1);
+        stringToUTF8(target.id, targetInt, target.id.length+1);
+        _emscripten_set_canvas_element_size(targetInt, width, height);
+        stackRestore(stackTop);
+      }
+    }function __registerRestoreOldStyle(canvas) {
+      var canvasSize = __get_canvas_element_size(canvas);
+      var oldWidth = canvasSize[0];
+      var oldHeight = canvasSize[1];
+      var oldCssWidth = canvas.style.width;
+      var oldCssHeight = canvas.style.height;
+      var oldBackgroundColor = canvas.style.backgroundColor; // Chrome reads color from here.
+      var oldDocumentBackgroundColor = document.body.style.backgroundColor; // IE11 reads color from here.
+      // Firefox always has black background color.
+      var oldPaddingLeft = canvas.style.paddingLeft; // Chrome, FF, Safari
+      var oldPaddingRight = canvas.style.paddingRight;
+      var oldPaddingTop = canvas.style.paddingTop;
+      var oldPaddingBottom = canvas.style.paddingBottom;
+      var oldMarginLeft = canvas.style.marginLeft; // IE11
+      var oldMarginRight = canvas.style.marginRight;
+      var oldMarginTop = canvas.style.marginTop;
+      var oldMarginBottom = canvas.style.marginBottom;
+      var oldDocumentBodyMargin = document.body.style.margin;
+      var oldDocumentOverflow = document.documentElement.style.overflow; // Chrome, Firefox
+      var oldDocumentScroll = document.body.scroll; // IE
+      var oldImageRendering = canvas.style.imageRendering;
+  
+      function restoreOldStyle() {
+        var fullscreenElement = document.fullscreenElement
+          || document.webkitFullscreenElement
+          ;
+        if (!fullscreenElement) {
+          document.removeEventListener('fullscreenchange', restoreOldStyle);
+  
+  
+          // Unprefixed Fullscreen API shipped in Chromium 71 (https://bugs.chromium.org/p/chromium/issues/detail?id=383813)
+          // As of Safari 13.0.3 on macOS Catalina 10.15.1 still ships with prefixed webkitfullscreenchange. TODO: revisit this check once Safari ships unprefixed version.
+          document.removeEventListener('webkitfullscreenchange', restoreOldStyle);
+  
+  
+          __set_canvas_element_size(canvas, oldWidth, oldHeight);
+  
+          canvas.style.width = oldCssWidth;
+          canvas.style.height = oldCssHeight;
+          canvas.style.backgroundColor = oldBackgroundColor; // Chrome
+          // IE11 hack: assigning 'undefined' or an empty string to document.body.style.backgroundColor has no effect, so first assign back the default color
+          // before setting the undefined value. Setting undefined value is also important, or otherwise we would later treat that as something that the user
+          // had explicitly set so subsequent fullscreen transitions would not set background color properly.
+          if (!oldDocumentBackgroundColor) document.body.style.backgroundColor = 'white';
+          document.body.style.backgroundColor = oldDocumentBackgroundColor; // IE11
+          canvas.style.paddingLeft = oldPaddingLeft; // Chrome, FF, Safari
+          canvas.style.paddingRight = oldPaddingRight;
+          canvas.style.paddingTop = oldPaddingTop;
+          canvas.style.paddingBottom = oldPaddingBottom;
+          canvas.style.marginLeft = oldMarginLeft; // IE11
+          canvas.style.marginRight = oldMarginRight;
+          canvas.style.marginTop = oldMarginTop;
+          canvas.style.marginBottom = oldMarginBottom;
+          document.body.style.margin = oldDocumentBodyMargin;
+          document.documentElement.style.overflow = oldDocumentOverflow; // Chrome, Firefox
+          document.body.scroll = oldDocumentScroll; // IE
+          canvas.style.imageRendering = oldImageRendering;
+          if (canvas.GLctxObject) canvas.GLctxObject.GLctx.viewport(0, 0, oldWidth, oldHeight);
+  
+          if (__currentFullscreenStrategy.canvasResizedCallback) {
+            wasmTable.get(__currentFullscreenStrategy.canvasResizedCallback)(37, 0, __currentFullscreenStrategy.canvasResizedCallbackUserData);
+          }
+        }
+      }
+      document.addEventListener('fullscreenchange', restoreOldStyle);
+      // Unprefixed Fullscreen API shipped in Chromium 71 (https://bugs.chromium.org/p/chromium/issues/detail?id=383813)
+      // As of Safari 13.0.3 on macOS Catalina 10.15.1 still ships with prefixed webkitfullscreenchange. TODO: revisit this check once Safari ships unprefixed version.
+      document.addEventListener('webkitfullscreenchange', restoreOldStyle);
+      return restoreOldStyle;
+    }
+  
+  function __restoreHiddenElements(hiddenElements) {
+      for (var i = 0; i < hiddenElements.length; ++i) {
+        hiddenElements[i].node.style.display = hiddenElements[i].displayState;
+      }
+    }
+  
+  var __currentFullscreenStrategy={};
+  
+  
+  /** @suppress {checkTypes} */
+  function jstoi_q(str) {
+      return parseInt(str);
+    }function __softFullscreenResizeWebGLRenderTarget() {
+      var dpr = devicePixelRatio;
+      var inHiDPIFullscreenMode = __currentFullscreenStrategy.canvasResolutionScaleMode == 2;
+      var inAspectRatioFixedFullscreenMode = __currentFullscreenStrategy.scaleMode == 2;
+      var inPixelPerfectFullscreenMode = __currentFullscreenStrategy.canvasResolutionScaleMode != 0;
+      var inCenteredWithoutScalingFullscreenMode = __currentFullscreenStrategy.scaleMode == 3;
+      var screenWidth = inHiDPIFullscreenMode ? Math.round(innerWidth*dpr) : innerWidth;
+      var screenHeight = inHiDPIFullscreenMode ? Math.round(innerHeight*dpr) : innerHeight;
+      var w = screenWidth;
+      var h = screenHeight;
+      var canvas = __currentFullscreenStrategy.target;
+      var canvasSize = __get_canvas_element_size(canvas);
+      var x = canvasSize[0];
+      var y = canvasSize[1];
+      var topMargin;
+  
+      if (inAspectRatioFixedFullscreenMode) {
+        if (w*y < x*h) h = (w * y / x) | 0;
+        else if (w*y > x*h) w = (h * x / y) | 0;
+        topMargin = ((screenHeight - h) / 2) | 0;
+      }
+  
+      if (inPixelPerfectFullscreenMode) {
+        __set_canvas_element_size(canvas, w, h);
+        if (canvas.GLctxObject) canvas.GLctxObject.GLctx.viewport(0, 0, w, h);
+      }
+  
+      // Back to CSS pixels.
+      if (inHiDPIFullscreenMode) {
+        topMargin /= dpr;
+        w /= dpr;
+        h /= dpr;
+        // Round to nearest 4 digits of precision.
+        w = Math.round(w*1e4)/1e4;
+        h = Math.round(h*1e4)/1e4;
+        topMargin = Math.round(topMargin*1e4)/1e4;
+      }
+  
+      if (inCenteredWithoutScalingFullscreenMode) {
+        var t = (innerHeight - jstoi_q(canvas.style.height)) / 2;
+        var b = (innerWidth - jstoi_q(canvas.style.width)) / 2;
+        __setLetterbox(canvas, t, b);
+      } else {
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        var b = (innerWidth - w) / 2;
+        __setLetterbox(canvas, topMargin, b);
+      }
+  
+      if (!inCenteredWithoutScalingFullscreenMode && __currentFullscreenStrategy.canvasResizedCallback) {
+        wasmTable.get(__currentFullscreenStrategy.canvasResizedCallback)(37, 0, __currentFullscreenStrategy.canvasResizedCallbackUserData);
+      }
+    }
+  
+  
+  function __getBoundingClientRect(e) {
+      return specialHTMLTargets.indexOf(e) < 0 ? e.getBoundingClientRect() : {'left':0,'top':0};
+    }function _JSEvents_resizeCanvasForFullscreen(target, strategy) {
+      var restoreOldStyle = __registerRestoreOldStyle(target);
+      var cssWidth = strategy.softFullscreen ? innerWidth : screen.width;
+      var cssHeight = strategy.softFullscreen ? innerHeight : screen.height;
+      var rect = __getBoundingClientRect(target);
+      var windowedCssWidth = rect.width;
+      var windowedCssHeight = rect.height;
+      var canvasSize = __get_canvas_element_size(target);
+      var windowedRttWidth = canvasSize[0];
+      var windowedRttHeight = canvasSize[1];
+  
+      if (strategy.scaleMode == 3) {
+        __setLetterbox(target, (cssHeight - windowedCssHeight) / 2, (cssWidth - windowedCssWidth) / 2);
+        cssWidth = windowedCssWidth;
+        cssHeight = windowedCssHeight;
+      } else if (strategy.scaleMode == 2) {
+        if (cssWidth*windowedRttHeight < windowedRttWidth*cssHeight) {
+          var desiredCssHeight = windowedRttHeight * cssWidth / windowedRttWidth;
+          __setLetterbox(target, (cssHeight - desiredCssHeight) / 2, 0);
+          cssHeight = desiredCssHeight;
+        } else {
+          var desiredCssWidth = windowedRttWidth * cssHeight / windowedRttHeight;
+          __setLetterbox(target, 0, (cssWidth - desiredCssWidth) / 2);
+          cssWidth = desiredCssWidth;
+        }
+      }
+  
+      // If we are adding padding, must choose a background color or otherwise Chrome will give the
+      // padding a default white color. Do it only if user has not customized their own background color.
+      if (!target.style.backgroundColor) target.style.backgroundColor = 'black';
+      // IE11 does the same, but requires the color to be set in the document body.
+      if (!document.body.style.backgroundColor) document.body.style.backgroundColor = 'black'; // IE11
+      // Firefox always shows black letterboxes independent of style color.
+  
+      target.style.width = cssWidth + 'px';
+      target.style.height = cssHeight + 'px';
+  
+      if (strategy.filteringMode == 1) {
+        target.style.imageRendering = 'optimizeSpeed';
+        target.style.imageRendering = '-moz-crisp-edges';
+        target.style.imageRendering = '-o-crisp-edges';
+        target.style.imageRendering = '-webkit-optimize-contrast';
+        target.style.imageRendering = 'optimize-contrast';
+        target.style.imageRendering = 'crisp-edges';
+        target.style.imageRendering = 'pixelated';
+      }
+  
+      var dpiScale = (strategy.canvasResolutionScaleMode == 2) ? devicePixelRatio : 1;
+      if (strategy.canvasResolutionScaleMode != 0) {
+        var newWidth = (cssWidth * dpiScale)|0;
+        var newHeight = (cssHeight * dpiScale)|0;
+        __set_canvas_element_size(target, newWidth, newHeight);
+        if (target.GLctxObject) target.GLctxObject.GLctx.viewport(0, 0, newWidth, newHeight);
+      }
+      return restoreOldStyle;
+    }function _emscripten_enter_soft_fullscreen(target, fullscreenStrategy) {
+      target = findEventTarget(target);
+      if (!target) return -4;
+  
+      var strategy = {
+          scaleMode: HEAP32[((fullscreenStrategy)>>2)],
+          canvasResolutionScaleMode: HEAP32[(((fullscreenStrategy)+(4))>>2)],
+          filteringMode: HEAP32[(((fullscreenStrategy)+(8))>>2)],
+          canvasResizedCallback: HEAP32[(((fullscreenStrategy)+(12))>>2)],
+          canvasResizedCallbackUserData: HEAP32[(((fullscreenStrategy)+(16))>>2)],
+          target: target,
+          softFullscreen: true
+      };
+  
+      var restoreOldStyle = _JSEvents_resizeCanvasForFullscreen(target, strategy);
+  
+      document.documentElement.style.overflow = 'hidden';  // Firefox, Chrome
+      document.body.scroll = "no"; // IE11
+      document.body.style.margin = '0px'; // Override default document margin area on all browsers.
+  
+      var hiddenElements = __hideEverythingExceptGivenElement(target);
+  
+      function restoreWindowedState() {
+        restoreOldStyle();
+        __restoreHiddenElements(hiddenElements);
+        removeEventListener('resize', __softFullscreenResizeWebGLRenderTarget);
+        if (strategy.canvasResizedCallback) {
+          wasmTable.get(strategy.canvasResizedCallback)(37, 0, strategy.canvasResizedCallbackUserData);
+        }
+        __currentFullscreenStrategy = 0;
+      }
+      __restoreOldWindowedStyle = restoreWindowedState;
+      __currentFullscreenStrategy = strategy;
+      addEventListener('resize', __softFullscreenResizeWebGLRenderTarget);
+  
+      // Inform the caller that the canvas size has changed.
+      if (strategy.canvasResizedCallback) {
+        wasmTable.get(strategy.canvasResizedCallback)(37, 0, strategy.canvasResizedCallbackUserData);
+      }
+  
+      return 0;
+    }
+
 
   function _emscripten_get_device_pixel_ratio() {
       return devicePixelRatio;
@@ -2235,14 +2542,6 @@ var ASM_CONSTS = {
       return _emscripten_generate_pc(callstack[level + 2]);
     }
 
-  function _emscripten_set_canvas_element_size(target, width, height) {
-      var canvas = findCanvasEventTarget(target);
-      if (!canvas) return -4;
-      canvas.width = width;
-      canvas.height = height;
-      return 0;
-    }
-
   function _emscripten_set_element_css_size(target, width, height) {
       target = findEventTarget(target);
       if (!target) return -4;
@@ -2250,6 +2549,73 @@ var ASM_CONSTS = {
       target.style.width = width + "px";
       target.style.height = height + "px";
   
+      return 0;
+    }
+
+  
+  
+  function __fillMouseEventData(eventStruct, e, target) {
+      var idx = eventStruct >> 2;
+      HEAP32[idx + 0] = e.screenX;
+      HEAP32[idx + 1] = e.screenY;
+      HEAP32[idx + 2] = e.clientX;
+      HEAP32[idx + 3] = e.clientY;
+      HEAP32[idx + 4] = e.ctrlKey;
+      HEAP32[idx + 5] = e.shiftKey;
+      HEAP32[idx + 6] = e.altKey;
+      HEAP32[idx + 7] = e.metaKey;
+      HEAP16[idx*2 + 16] = e.button;
+      HEAP16[idx*2 + 17] = e.buttons;
+  
+      HEAP32[idx + 9] = e["movementX"]
+        ;
+  
+      HEAP32[idx + 10] = e["movementY"]
+        ;
+  
+      var rect = __getBoundingClientRect(target);
+      HEAP32[idx + 11] = e.clientX - rect.left;
+      HEAP32[idx + 12] = e.clientY - rect.top;
+  
+    }function __registerMouseEventCallback(target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString, targetThread) {
+      if (!JSEvents.mouseEvent) JSEvents.mouseEvent = _malloc( 64 );
+      target = findEventTarget(target);
+  
+      var mouseEventHandlerFunc = function(ev) {
+        var e = ev || event;
+  
+        // TODO: Make this access thread safe, or this could update live while app is reading it.
+        __fillMouseEventData(JSEvents.mouseEvent, e, target);
+  
+        if (wasmTable.get(callbackfunc)(eventTypeId, JSEvents.mouseEvent, userData)) e.preventDefault();
+      };
+  
+      var eventHandler = {
+        target: target,
+        allowsDeferredCalls: eventTypeString != 'mousemove' && eventTypeString != 'mouseenter' && eventTypeString != 'mouseleave', // Mouse move events do not allow fullscreen/pointer lock requests to be handled in them!
+        eventTypeString: eventTypeString,
+        callbackfunc: callbackfunc,
+        handlerFunc: mouseEventHandlerFunc,
+        useCapture: useCapture
+      };
+      JSEvents.registerOrRemoveHandler(eventHandler);
+    }function _emscripten_set_mousedown_callback_on_thread(target, userData, useCapture, callbackfunc, targetThread) {
+      __registerMouseEventCallback(target, userData, useCapture, callbackfunc, 5, "mousedown", targetThread);
+      return 0;
+    }
+
+  function _emscripten_set_mousemove_callback_on_thread(target, userData, useCapture, callbackfunc, targetThread) {
+      __registerMouseEventCallback(target, userData, useCapture, callbackfunc, 8, "mousemove", targetThread);
+      return 0;
+    }
+
+  function _emscripten_set_mouseout_callback_on_thread(target, userData, useCapture, callbackfunc, targetThread) {
+      __registerMouseEventCallback(target, userData, useCapture, callbackfunc, 36, "mouseout", targetThread);
+      return 0;
+    }
+
+  function _emscripten_set_mouseup_callback_on_thread(target, userData, useCapture, callbackfunc, targetThread) {
+      __registerMouseEventCallback(target, userData, useCapture, callbackfunc, 6, "mouseup", targetThread);
       return 0;
     }
 
@@ -2740,11 +3106,7 @@ var ASM_CONSTS = {
       }
     }
 
-  
-  /** @suppress {checkTypes} */
-  function jstoi_q(str) {
-      return parseInt(str);
-    }function _glGetUniformLocation(program, name) {
+  function _glGetUniformLocation(program, name) {
       name = UTF8ToString(name);
   
       var arrayIndex = 0;
@@ -2864,6 +3226,10 @@ var ASM_CONSTS = {
 
   function _glUniform1f(location, v0) {
       GLctx.uniform1f(GL.uniforms[location], v0);
+    }
+
+  function _glUniform2f(location, v0, v1) {
+      GLctx.uniform2f(GL.uniforms[location], v0, v1);
     }
 
   function _glUniform4f(location, v0, v1, v2, v3) {
@@ -3126,7 +3492,7 @@ function intArrayToString(array) {
 
 /* global initializers */  __ATINIT__.push({ func: function() { ___wasm_call_ctors() } });
 
-var asmLibraryArg = { "__assert_fail": ___assert_fail, "__indirect_function_table": wasmTable, "__sys_dup": ___sys_dup, "__sys_exit_group": ___sys_exit_group, "__sys_getpid": ___sys_getpid, "__sys_open": ___sys_open, "__sys_read": ___sys_read, "__sys_stat64": ___sys_stat64, "__sys_write": ___sys_write, "_jsLoadTextureFromUrl": __jsLoadTextureFromUrl, "_jsUploadUnicodeCharToTexture": __jsUploadUnicodeCharToTexture, "abort": _abort, "atexit": _atexit, "emscripten_asm_const_int": _emscripten_asm_const_int, "emscripten_builtin_mmap2": _emscripten_builtin_mmap2, "emscripten_builtin_munmap": _emscripten_builtin_munmap, "emscripten_get_canvas_element_size": _emscripten_get_canvas_element_size, "emscripten_get_device_pixel_ratio": _emscripten_get_device_pixel_ratio, "emscripten_get_module_name": _emscripten_get_module_name, "emscripten_memcpy_big": _emscripten_memcpy_big, "emscripten_pc_get_column": _emscripten_pc_get_column, "emscripten_pc_get_file": _emscripten_pc_get_file, "emscripten_pc_get_function": _emscripten_pc_get_function, "emscripten_pc_get_line": _emscripten_pc_get_line, "emscripten_request_animation_frame_loop": _emscripten_request_animation_frame_loop, "emscripten_resize_heap": _emscripten_resize_heap, "emscripten_return_address": _emscripten_return_address, "emscripten_set_canvas_element_size": _emscripten_set_canvas_element_size, "emscripten_set_element_css_size": _emscripten_set_element_css_size, "emscripten_stack_unwind_buffer": _emscripten_stack_unwind_buffer, "emscripten_webgl_create_context": _emscripten_webgl_create_context, "emscripten_webgl_init_context_attributes": _emscripten_webgl_init_context_attributes, "emscripten_webgl_make_context_current": _emscripten_webgl_make_context_current, "environ_get": _environ_get, "environ_sizes_get": _environ_sizes_get, "fd_close": _fd_close, "fd_write": _fd_write, "glAttachShader": _glAttachShader, "glBindAttribLocation": _glBindAttribLocation, "glBindBuffer": _glBindBuffer, "glBindTexture": _glBindTexture, "glBlendFunc": _glBlendFunc, "glBufferData": _glBufferData, "glClear": _glClear, "glClearColor": _glClearColor, "glCompileShader": _glCompileShader, "glCreateProgram": _glCreateProgram, "glCreateShader": _glCreateShader, "glDrawArrays": _glDrawArrays, "glEnable": _glEnable, "glEnableVertexAttribArray": _glEnableVertexAttribArray, "glGenBuffers": _glGenBuffers, "glGenTextures": _glGenTextures, "glGetProgramInfoLog": _glGetProgramInfoLog, "glGetProgramiv": _glGetProgramiv, "glGetShaderInfoLog": _glGetShaderInfoLog, "glGetShaderiv": _glGetShaderiv, "glGetUniformLocation": _glGetUniformLocation, "glLinkProgram": _glLinkProgram, "glShaderSource": _glShaderSource, "glTexImage2D": _glTexImage2D, "glTexParameteri": _glTexParameteri, "glUniform1f": _glUniform1f, "glUniform4f": _glUniform4f, "glUniformMatrix4fv": _glUniformMatrix4fv, "glUseProgram": _glUseProgram, "glValidateProgram": _glValidateProgram, "glVertexAttribPointer": _glVertexAttribPointer, "memory": wasmMemory, "nanosleep": _nanosleep, "setTempRet0": _setTempRet0, "sigaction": _sigaction, "sysconf": _sysconf };
+var asmLibraryArg = { "__assert_fail": ___assert_fail, "__indirect_function_table": wasmTable, "__sys_dup": ___sys_dup, "__sys_exit_group": ___sys_exit_group, "__sys_getpid": ___sys_getpid, "__sys_open": ___sys_open, "__sys_read": ___sys_read, "__sys_stat64": ___sys_stat64, "__sys_write": ___sys_write, "_jsLoadTextureFromUrl": __jsLoadTextureFromUrl, "_jsSetCursor": __jsSetCursor, "_jsUploadUnicodeCharToTexture": __jsUploadUnicodeCharToTexture, "abort": _abort, "atexit": _atexit, "emscripten_asm_const_int": _emscripten_asm_const_int, "emscripten_builtin_mmap2": _emscripten_builtin_mmap2, "emscripten_builtin_munmap": _emscripten_builtin_munmap, "emscripten_enter_soft_fullscreen": _emscripten_enter_soft_fullscreen, "emscripten_get_canvas_element_size": _emscripten_get_canvas_element_size, "emscripten_get_device_pixel_ratio": _emscripten_get_device_pixel_ratio, "emscripten_get_module_name": _emscripten_get_module_name, "emscripten_memcpy_big": _emscripten_memcpy_big, "emscripten_pc_get_column": _emscripten_pc_get_column, "emscripten_pc_get_file": _emscripten_pc_get_file, "emscripten_pc_get_function": _emscripten_pc_get_function, "emscripten_pc_get_line": _emscripten_pc_get_line, "emscripten_request_animation_frame_loop": _emscripten_request_animation_frame_loop, "emscripten_resize_heap": _emscripten_resize_heap, "emscripten_return_address": _emscripten_return_address, "emscripten_set_element_css_size": _emscripten_set_element_css_size, "emscripten_set_mousedown_callback_on_thread": _emscripten_set_mousedown_callback_on_thread, "emscripten_set_mousemove_callback_on_thread": _emscripten_set_mousemove_callback_on_thread, "emscripten_set_mouseout_callback_on_thread": _emscripten_set_mouseout_callback_on_thread, "emscripten_set_mouseup_callback_on_thread": _emscripten_set_mouseup_callback_on_thread, "emscripten_stack_unwind_buffer": _emscripten_stack_unwind_buffer, "emscripten_webgl_create_context": _emscripten_webgl_create_context, "emscripten_webgl_init_context_attributes": _emscripten_webgl_init_context_attributes, "emscripten_webgl_make_context_current": _emscripten_webgl_make_context_current, "environ_get": _environ_get, "environ_sizes_get": _environ_sizes_get, "fd_close": _fd_close, "fd_write": _fd_write, "glAttachShader": _glAttachShader, "glBindAttribLocation": _glBindAttribLocation, "glBindBuffer": _glBindBuffer, "glBindTexture": _glBindTexture, "glBlendFunc": _glBlendFunc, "glBufferData": _glBufferData, "glClear": _glClear, "glClearColor": _glClearColor, "glCompileShader": _glCompileShader, "glCreateProgram": _glCreateProgram, "glCreateShader": _glCreateShader, "glDrawArrays": _glDrawArrays, "glEnable": _glEnable, "glEnableVertexAttribArray": _glEnableVertexAttribArray, "glGenBuffers": _glGenBuffers, "glGenTextures": _glGenTextures, "glGetProgramInfoLog": _glGetProgramInfoLog, "glGetProgramiv": _glGetProgramiv, "glGetShaderInfoLog": _glGetShaderInfoLog, "glGetShaderiv": _glGetShaderiv, "glGetUniformLocation": _glGetUniformLocation, "glLinkProgram": _glLinkProgram, "glShaderSource": _glShaderSource, "glTexImage2D": _glTexImage2D, "glTexParameteri": _glTexParameteri, "glUniform1f": _glUniform1f, "glUniform2f": _glUniform2f, "glUniform4f": _glUniform4f, "glUniformMatrix4fv": _glUniformMatrix4fv, "glUseProgram": _glUseProgram, "glValidateProgram": _glValidateProgram, "glVertexAttribPointer": _glVertexAttribPointer, "memory": wasmMemory, "nanosleep": _nanosleep, "setTempRet0": _setTempRet0, "sigaction": _sigaction, "sysconf": _sysconf };
 var asm = createWasm();
 /** @type {function(...*):?} */
 var ___wasm_call_ctors = Module["___wasm_call_ctors"] = function() {
@@ -3198,7 +3564,7 @@ var __growWasmMemory = Module["__growWasmMemory"] = function() {
   return (__growWasmMemory = Module["__growWasmMemory"] = Module["asm"]["__growWasmMemory"]).apply(null, arguments);
 };
 
-Module['___heap_base'] = 5592416;
+Module['___heap_base'] = 5601312;
 Module['___global_base'] = 1024;
 
 
