@@ -480,8 +480,8 @@ var wasmMemory;
 // so this creates a (non-native-wasm) table for us.
 
 var wasmTable = new WebAssembly.Table({
-  'initial': 41,
-  'maximum': 41,
+  'initial': 42,
+  'maximum': 42,
   'element': 'anyfunc'
 });
 
@@ -1062,10 +1062,10 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5601312,
+var STACK_BASE = 5606176,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 358432,
-    DYNAMIC_BASE = 5601312;
+    STACK_MAX = 363296,
+    DYNAMIC_BASE = 5606176;
 
 
 
@@ -1629,10 +1629,10 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  25168: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
- 31576: function() {return STACK_BASE;},  
- 31599: function() {return STACK_MAX;},  
- 45404: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
+  26512: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
+ 33296: function() {return STACK_BASE;},  
+ 33319: function() {return STACK_MAX;},  
+ 47132: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
 };
 
 
@@ -1715,10 +1715,6 @@ var ASM_CONSTS = {
       var js = jsStackTrace();
       if (Module['extraStackTrace']) js += '\n' + Module['extraStackTrace']();
       return demangleAll(js);
-    }
-
-  function ___assert_fail(condition, filename, line, func) {
-      abort('Assertion failed: ' + UTF8ToString(condition) + ', at: ' + [filename ? UTF8ToString(filename) : 'unknown filename', line, func ? UTF8ToString(func) : 'unknown function']);
     }
 
   
@@ -1838,11 +1834,47 @@ var ASM_CONSTS = {
     }
 
   
+  var _atlasCanvas=undefined;
+  
+  var _atlasCanvasCtx=undefined;function __jsAtlasCanvasInit(width, height) {
+          _atlasCanvas = document.createElement('canvas');
+          _atlasCanvas.width = width;
+          _atlasCanvas.height = height;
+          _atlasCanvasCtx = _atlasCanvas.getContext('2d');
+          _atlasCanvasCtx.fillStyle = 'black';
+          _atlasCanvasCtx['globalCompositeOperator'] = 'copy';
+          _atlasCanvasCtx.globalAlpha = 0;
+          _atlasCanvasCtx.fillRect(0, 0, canvas.width, canvas.height);
+          _atlasCanvasCtx.globalAlpha = 1;
+      }
+
+  function __jsAtlasCanvasPutChar(codePoint, fontSize, bold, r, g, b, x, middleBaselineY) {
+          var text = String.fromCodePoint(codePoint);
+          _atlasCanvasCtx.fillStyle = `rgb(${r * 255} ${g * 255} ${b * 255})`;
+          _atlasCanvasCtx.font = (bold ? 'bold ' : '') + fontSize + 'px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif';
+          _atlasCanvasCtx.textBaseline = 'middle';
+          _atlasCanvasCtx.fillText(text, x, middleBaselineY);
+      }
+
+  
   function _uploadFlipped(img) {
           GLctx.pixelStorei(0x9240/*GLctx.UNPACK_FLIP_Y_WEBGL*/, true);
           GLctx.texImage2D(0xDE1/*GLctx.TEXTURE_2D*/, 0, 0x1908/*GLctx.RGBA*/, 0x1908/*GLctx.RGBA*/, 0x1401/*GLctx.UNSIGNED_BYTE*/, img);
           GLctx.pixelStorei(0x9240/*GLctx.UNPACK_FLIP_Y_WEBGL*/, false);
-      }function __jsLoadTextureFromUrl(glTexture, url, outW, outH) {
+      }function __jsAtlasCanvasUploadToTexture() {
+          if (false) // Enable for debugging
+          {
+              document.body.appendChild(_atlasCanvas);
+              document.getElementById("canvas").style.display = "none";
+              document.body.style.backgroundColor = "white";
+              debugger;
+          }
+          _uploadFlipped(_atlasCanvas);
+          _atlasCanvas = undefined;
+          _atlasCanvasCtx = undefined;
+      }
+
+  function __jsLoadTextureFromUrl(glTexture, url, outW, outH) {
           var img = new Image();
           img.onload = function () {
               HEAPU32[outW >> 2] = img.width;
@@ -1856,6 +1888,19 @@ var ASM_CONSTS = {
           img.src = UTF8ToString(url);
       }
 
+  function __jsMeasureChar(codePoint, fontSize, bold, outCharWidth, outCharMidBaseline, outCharDescentFromBaseline) {
+          var measureCanvas = document.createElement('canvas');
+          var measureCtx = measureCanvas.getContext('2d');
+  
+          measureCtx.font = (bold ? 'bold ' : '') + fontSize + 'px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif';
+          measureCtx.textBaseline = 'middle';
+          var text = String.fromCodePoint(codePoint);
+          var textMetrics = measureCtx.measureText(text);
+          HEAPF32[outCharWidth >> 2] = textMetrics.width;
+          HEAPF32[outCharMidBaseline >> 2] = textMetrics.actualBoundingBoxAscent;
+          HEAPF32[outCharDescentFromBaseline >> 2] = textMetrics.actualBoundingBoxDescent;
+      }
+
   function __jsSetCursor(type) {
           var typeStr = ['grab', 'grabbing'][type];
           if (typeStr === undefined) {
@@ -1864,48 +1909,8 @@ var ASM_CONSTS = {
           document.getElementById("canvas").style.cursor = typeStr;
       }
 
-  function __jsUploadUnicodeCharToTexture(unicodeChar, fontSize, bold, r, g, b, outCharWidth, outCharMiddleBaseline, outTextureWidth, outTextureHeight) {
-          var measureCanvas = document.createElement('canvas');
-          var measureCtx = measureCanvas.getContext('2d');
-  
-          var fontStyle = (bold ? 'bold ' : '') + fontSize + 'px/1 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", sans-serif';
-          var textBaseline = 'middle';
-          measureCtx.font = fontStyle;
-          measureCtx.textBaseline = textBaseline;
-          var text = String.fromCodePoint(unicodeChar);
-          var textMetrics = measureCtx.measureText(text);
-          var charMiddleBaseline = textMetrics.actualBoundingBoxAscent;
-          var charY = Math.ceil(charMiddleBaseline);
-          var charWidth = textMetrics.width;
-  
-          var canvas = document.createElement('canvas');
-          canvas.width = Math.max(1, Math.ceil(charWidth));
-          canvas.height = Math.max(1, charY + Math.ceil(textMetrics.actualBoundingBoxDescent));
-          var ctx = canvas.getContext('2d');
-          ctx.fillStyle = 'black';
-          ctx['globalCompositeOperator'] = 'copy';
-          ctx.globalAlpha = 0;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.globalAlpha = 1;
-          ctx.fillStyle = `rgb(${r * 255} ${g * 255} ${b * 255})`;
-          ctx.font = fontStyle;
-          ctx.textBaseline = textBaseline;
-          ctx.fillText(text, 0, charY);
-  
-          if (false) // Enable for debugging
-          {
-              document.body.appendChild(canvas);
-              document.getElementById("canvas").style.display = "none";
-              document.body.style.backgroundColor = "white";
-              debugger;
-          }
-  
-          _uploadFlipped(canvas);
-  
-          HEAPF32[outCharWidth >> 2] = charWidth;
-          HEAPF32[outCharMiddleBaseline >> 2] = charMiddleBaseline;
-          HEAPF32[outTextureWidth >> 2] = canvas.width;
-          HEAPF32[outTextureHeight >> 2] = canvas.height;
+  function __jsSetFocus() {
+          document.getElementById("canvas").focus();
       }
 
   function _abort() {
@@ -2422,6 +2427,9 @@ var ASM_CONSTS = {
       return stringToUTF8(wasmBinaryFile, buf, length);
     }
 
+  var _emscripten_get_now;_emscripten_get_now = function() { return performance.now(); }
+  ;
+
   function _emscripten_memcpy_big(dest, src, num) {
       HEAPU8.copyWithin(dest, src, src + num);
     }
@@ -2549,6 +2557,46 @@ var ASM_CONSTS = {
       target.style.width = width + "px";
       target.style.height = height + "px";
   
+      return 0;
+    }
+
+  
+  function __registerKeyEventCallback(target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString, targetThread) {
+      if (!JSEvents.keyEvent) JSEvents.keyEvent = _malloc( 164 );
+  
+      var keyEventHandlerFunc = function(e) {
+  
+        var keyEventData = JSEvents.keyEvent;
+        var idx = keyEventData >> 2;
+  
+        HEAP32[idx + 0] = e.location;
+        HEAP32[idx + 1] = e.ctrlKey;
+        HEAP32[idx + 2] = e.shiftKey;
+        HEAP32[idx + 3] = e.altKey;
+        HEAP32[idx + 4] = e.metaKey;
+        HEAP32[idx + 5] = e.repeat;
+        HEAP32[idx + 6] = e.charCode;
+        HEAP32[idx + 7] = e.keyCode;
+        HEAP32[idx + 8] = e.which;
+        stringToUTF8(e.key || '', keyEventData + 36, 32);
+        stringToUTF8(e.code || '', keyEventData + 68, 32);
+        stringToUTF8(e.char || '', keyEventData + 100, 32);
+        stringToUTF8(e.locale || '', keyEventData + 132, 32);
+  
+        if (wasmTable.get(callbackfunc)(eventTypeId, keyEventData, userData)) e.preventDefault();
+      };
+  
+      var eventHandler = {
+        target: findEventTarget(target),
+        allowsDeferredCalls: true,
+        eventTypeString: eventTypeString,
+        callbackfunc: callbackfunc,
+        handlerFunc: keyEventHandlerFunc,
+        useCapture: useCapture
+      };
+      JSEvents.registerOrRemoveHandler(eventHandler);
+    }function _emscripten_set_keypress_callback_on_thread(target, userData, useCapture, callbackfunc, targetThread) {
+      __registerKeyEventCallback(target, userData, useCapture, callbackfunc, 1, "keypress", targetThread);
       return 0;
     }
 
@@ -2977,6 +3025,17 @@ var ASM_CONSTS = {
       return id;
     }
 
+  function _glDeleteTextures(n, textures) {
+      for (var i = 0; i < n; i++) {
+        var id = HEAP32[(((textures)+(i*4))>>2)];
+        var texture = GL.textures[id];
+        if (!texture) continue; // GL spec: "glDeleteTextures silently ignores 0s and names that do not correspond to existing textures".
+        GLctx.deleteTexture(texture);
+        texture.name = 0;
+        GL.textures[id] = null;
+      }
+    }
+
   function _glDrawArrays(mode, first, count) {
   
       GLctx.drawArrays(mode, first, count);
@@ -3254,9 +3313,7 @@ var ASM_CONSTS = {
     }
 
   
-  
-  var _emscripten_get_now;_emscripten_get_now = function() { return performance.now(); }
-  ;function _usleep(useconds) {
+  function _usleep(useconds) {
       // int usleep(useconds_t useconds);
       // http://pubs.opengroup.org/onlinepubs/000095399/functions/usleep.html
       // We're single-threaded, so use a busy loop. Super-ugly.
@@ -3492,7 +3549,7 @@ function intArrayToString(array) {
 
 /* global initializers */  __ATINIT__.push({ func: function() { ___wasm_call_ctors() } });
 
-var asmLibraryArg = { "__assert_fail": ___assert_fail, "__indirect_function_table": wasmTable, "__sys_dup": ___sys_dup, "__sys_exit_group": ___sys_exit_group, "__sys_getpid": ___sys_getpid, "__sys_open": ___sys_open, "__sys_read": ___sys_read, "__sys_stat64": ___sys_stat64, "__sys_write": ___sys_write, "_jsLoadTextureFromUrl": __jsLoadTextureFromUrl, "_jsSetCursor": __jsSetCursor, "_jsUploadUnicodeCharToTexture": __jsUploadUnicodeCharToTexture, "abort": _abort, "atexit": _atexit, "emscripten_asm_const_int": _emscripten_asm_const_int, "emscripten_builtin_mmap2": _emscripten_builtin_mmap2, "emscripten_builtin_munmap": _emscripten_builtin_munmap, "emscripten_enter_soft_fullscreen": _emscripten_enter_soft_fullscreen, "emscripten_get_canvas_element_size": _emscripten_get_canvas_element_size, "emscripten_get_device_pixel_ratio": _emscripten_get_device_pixel_ratio, "emscripten_get_module_name": _emscripten_get_module_name, "emscripten_memcpy_big": _emscripten_memcpy_big, "emscripten_pc_get_column": _emscripten_pc_get_column, "emscripten_pc_get_file": _emscripten_pc_get_file, "emscripten_pc_get_function": _emscripten_pc_get_function, "emscripten_pc_get_line": _emscripten_pc_get_line, "emscripten_request_animation_frame_loop": _emscripten_request_animation_frame_loop, "emscripten_resize_heap": _emscripten_resize_heap, "emscripten_return_address": _emscripten_return_address, "emscripten_set_element_css_size": _emscripten_set_element_css_size, "emscripten_set_mousedown_callback_on_thread": _emscripten_set_mousedown_callback_on_thread, "emscripten_set_mousemove_callback_on_thread": _emscripten_set_mousemove_callback_on_thread, "emscripten_set_mouseout_callback_on_thread": _emscripten_set_mouseout_callback_on_thread, "emscripten_set_mouseup_callback_on_thread": _emscripten_set_mouseup_callback_on_thread, "emscripten_stack_unwind_buffer": _emscripten_stack_unwind_buffer, "emscripten_webgl_create_context": _emscripten_webgl_create_context, "emscripten_webgl_init_context_attributes": _emscripten_webgl_init_context_attributes, "emscripten_webgl_make_context_current": _emscripten_webgl_make_context_current, "environ_get": _environ_get, "environ_sizes_get": _environ_sizes_get, "fd_close": _fd_close, "fd_write": _fd_write, "glAttachShader": _glAttachShader, "glBindAttribLocation": _glBindAttribLocation, "glBindBuffer": _glBindBuffer, "glBindTexture": _glBindTexture, "glBlendFunc": _glBlendFunc, "glBufferData": _glBufferData, "glClear": _glClear, "glClearColor": _glClearColor, "glCompileShader": _glCompileShader, "glCreateProgram": _glCreateProgram, "glCreateShader": _glCreateShader, "glDrawArrays": _glDrawArrays, "glEnable": _glEnable, "glEnableVertexAttribArray": _glEnableVertexAttribArray, "glGenBuffers": _glGenBuffers, "glGenTextures": _glGenTextures, "glGetProgramInfoLog": _glGetProgramInfoLog, "glGetProgramiv": _glGetProgramiv, "glGetShaderInfoLog": _glGetShaderInfoLog, "glGetShaderiv": _glGetShaderiv, "glGetUniformLocation": _glGetUniformLocation, "glLinkProgram": _glLinkProgram, "glShaderSource": _glShaderSource, "glTexImage2D": _glTexImage2D, "glTexParameteri": _glTexParameteri, "glUniform1f": _glUniform1f, "glUniform2f": _glUniform2f, "glUniform4f": _glUniform4f, "glUniformMatrix4fv": _glUniformMatrix4fv, "glUseProgram": _glUseProgram, "glValidateProgram": _glValidateProgram, "glVertexAttribPointer": _glVertexAttribPointer, "memory": wasmMemory, "nanosleep": _nanosleep, "setTempRet0": _setTempRet0, "sigaction": _sigaction, "sysconf": _sysconf };
+var asmLibraryArg = { "__indirect_function_table": wasmTable, "__sys_dup": ___sys_dup, "__sys_exit_group": ___sys_exit_group, "__sys_getpid": ___sys_getpid, "__sys_open": ___sys_open, "__sys_read": ___sys_read, "__sys_stat64": ___sys_stat64, "__sys_write": ___sys_write, "_jsAtlasCanvasInit": __jsAtlasCanvasInit, "_jsAtlasCanvasPutChar": __jsAtlasCanvasPutChar, "_jsAtlasCanvasUploadToTexture": __jsAtlasCanvasUploadToTexture, "_jsLoadTextureFromUrl": __jsLoadTextureFromUrl, "_jsMeasureChar": __jsMeasureChar, "_jsSetCursor": __jsSetCursor, "_jsSetFocus": __jsSetFocus, "abort": _abort, "atexit": _atexit, "emscripten_asm_const_int": _emscripten_asm_const_int, "emscripten_builtin_mmap2": _emscripten_builtin_mmap2, "emscripten_builtin_munmap": _emscripten_builtin_munmap, "emscripten_enter_soft_fullscreen": _emscripten_enter_soft_fullscreen, "emscripten_get_canvas_element_size": _emscripten_get_canvas_element_size, "emscripten_get_device_pixel_ratio": _emscripten_get_device_pixel_ratio, "emscripten_get_module_name": _emscripten_get_module_name, "emscripten_get_now": _emscripten_get_now, "emscripten_memcpy_big": _emscripten_memcpy_big, "emscripten_pc_get_column": _emscripten_pc_get_column, "emscripten_pc_get_file": _emscripten_pc_get_file, "emscripten_pc_get_function": _emscripten_pc_get_function, "emscripten_pc_get_line": _emscripten_pc_get_line, "emscripten_request_animation_frame_loop": _emscripten_request_animation_frame_loop, "emscripten_resize_heap": _emscripten_resize_heap, "emscripten_return_address": _emscripten_return_address, "emscripten_set_element_css_size": _emscripten_set_element_css_size, "emscripten_set_keypress_callback_on_thread": _emscripten_set_keypress_callback_on_thread, "emscripten_set_mousedown_callback_on_thread": _emscripten_set_mousedown_callback_on_thread, "emscripten_set_mousemove_callback_on_thread": _emscripten_set_mousemove_callback_on_thread, "emscripten_set_mouseout_callback_on_thread": _emscripten_set_mouseout_callback_on_thread, "emscripten_set_mouseup_callback_on_thread": _emscripten_set_mouseup_callback_on_thread, "emscripten_stack_unwind_buffer": _emscripten_stack_unwind_buffer, "emscripten_webgl_create_context": _emscripten_webgl_create_context, "emscripten_webgl_init_context_attributes": _emscripten_webgl_init_context_attributes, "emscripten_webgl_make_context_current": _emscripten_webgl_make_context_current, "environ_get": _environ_get, "environ_sizes_get": _environ_sizes_get, "fd_close": _fd_close, "fd_write": _fd_write, "glAttachShader": _glAttachShader, "glBindAttribLocation": _glBindAttribLocation, "glBindBuffer": _glBindBuffer, "glBindTexture": _glBindTexture, "glBlendFunc": _glBlendFunc, "glBufferData": _glBufferData, "glClear": _glClear, "glClearColor": _glClearColor, "glCompileShader": _glCompileShader, "glCreateProgram": _glCreateProgram, "glCreateShader": _glCreateShader, "glDeleteTextures": _glDeleteTextures, "glDrawArrays": _glDrawArrays, "glEnable": _glEnable, "glEnableVertexAttribArray": _glEnableVertexAttribArray, "glGenBuffers": _glGenBuffers, "glGenTextures": _glGenTextures, "glGetProgramInfoLog": _glGetProgramInfoLog, "glGetProgramiv": _glGetProgramiv, "glGetShaderInfoLog": _glGetShaderInfoLog, "glGetShaderiv": _glGetShaderiv, "glGetUniformLocation": _glGetUniformLocation, "glLinkProgram": _glLinkProgram, "glShaderSource": _glShaderSource, "glTexImage2D": _glTexImage2D, "glTexParameteri": _glTexParameteri, "glUniform1f": _glUniform1f, "glUniform2f": _glUniform2f, "glUniform4f": _glUniform4f, "glUniformMatrix4fv": _glUniformMatrix4fv, "glUseProgram": _glUseProgram, "glValidateProgram": _glValidateProgram, "glVertexAttribPointer": _glVertexAttribPointer, "memory": wasmMemory, "nanosleep": _nanosleep, "setTempRet0": _setTempRet0, "sigaction": _sigaction, "sysconf": _sysconf };
 var asm = createWasm();
 /** @type {function(...*):?} */
 var ___wasm_call_ctors = Module["___wasm_call_ctors"] = function() {
@@ -3502,6 +3559,11 @@ var ___wasm_call_ctors = Module["___wasm_call_ctors"] = function() {
 /** @type {function(...*):?} */
 var _malloc = Module["_malloc"] = function() {
   return (_malloc = Module["_malloc"] = Module["asm"]["malloc"]).apply(null, arguments);
+};
+
+/** @type {function(...*):?} */
+var _free = Module["_free"] = function() {
+  return (_free = Module["_free"] = Module["asm"]["free"]).apply(null, arguments);
 };
 
 /** @type {function(...*):?} */
@@ -3527,11 +3589,6 @@ var stackRestore = Module["stackRestore"] = function() {
 /** @type {function(...*):?} */
 var stackAlloc = Module["stackAlloc"] = function() {
   return (stackAlloc = Module["stackAlloc"] = Module["asm"]["stackAlloc"]).apply(null, arguments);
-};
-
-/** @type {function(...*):?} */
-var _free = Module["_free"] = function() {
-  return (_free = Module["_free"] = Module["asm"]["free"]).apply(null, arguments);
 };
 
 /** @type {function(...*):?} */
@@ -3564,7 +3621,7 @@ var __growWasmMemory = Module["__growWasmMemory"] = function() {
   return (__growWasmMemory = Module["__growWasmMemory"] = Module["asm"]["__growWasmMemory"]).apply(null, arguments);
 };
 
-Module['___heap_base'] = 5601312;
+Module['___heap_base'] = 5606176;
 Module['___global_base'] = 1024;
 
 
