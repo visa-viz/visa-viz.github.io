@@ -1062,10 +1062,10 @@ function updateGlobalBufferAndViews(buf) {
   Module['HEAPF64'] = HEAPF64 = new Float64Array(buf);
 }
 
-var STACK_BASE = 5834912,
+var STACK_BASE = 5880736,
     STACKTOP = STACK_BASE,
-    STACK_MAX = 592032,
-    DYNAMIC_BASE = 5834912;
+    STACK_MAX = 637856,
+    DYNAMIC_BASE = 5880736;
 
 
 
@@ -1629,10 +1629,10 @@ var tempI64;
 // === Body ===
 
 var ASM_CONSTS = {
-  148128: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
- 154608: function() {return STACK_BASE;},  
- 154631: function() {return STACK_MAX;},  
- 168444: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
+  150160: function() {return withBuiltinMalloc(function () { return allocateUTF8(Module['UBSAN_OPTIONS'] || 0); });},  
+ 156944: function() {return STACK_BASE;},  
+ 156967: function() {return STACK_MAX;},  
+ 170780: function() {var setting = Module['printWithColors']; if (setting != null) { return setting; } else { return ENVIRONMENT_IS_NODE && process.stderr.isTTY; }}
 };
 
 
@@ -3621,7 +3621,7 @@ var __growWasmMemory = Module["__growWasmMemory"] = function() {
   return (__growWasmMemory = Module["__growWasmMemory"] = Module["asm"]["__growWasmMemory"]).apply(null, arguments);
 };
 
-Module['___heap_base'] = 5834912;
+Module['___heap_base'] = 5880736;
 Module['___global_base'] = 1024;
 
 
