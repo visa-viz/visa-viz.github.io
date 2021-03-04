@@ -13,10 +13,10 @@
         var Module = {};
 
         const isCdnEnabled = true; // Set by the build script
-        const cdnBaseUrl = "http://vv.azureedge.net/res";
+        const cdnBaseUrl = "https://vv.azureedge.net/res";
         if (isCdnEnabled) {
             Module['locateFile'] = function (path, prefix) {
-                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.b245218b.data`;
+                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.5008f359.data`;
                 if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.df714d05.wasm`;
                 return prefix + path;
             }
@@ -45,7 +45,7 @@
             })
         }
 
-        Promise.all([binary("index.705edcaa.js"), binary("index.df714d05.wasm")])
+        Promise.all([binary("index.fe626a84.js"), binary("index.df714d05.wasm")])
             .then(e => {
                 Module.wasm = e[1];
                 const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
