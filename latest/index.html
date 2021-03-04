@@ -1,39 +1,66 @@
 <!doctype html>
 <html lang=en-us>
+
 <head>
     <meta charset=utf-8>
 </head>
+
 <body>
     <canvas id="canvas" style="display:block" tabindex=-1></canvas>
     <script>
+        document.getElementById("canvas").addEventListener('contextmenu', event => event.preventDefault());
+
         var Module = {};
-        function binary(e) {
+
+        const isCdnEnabled = true; // Set by the build script
+        const cdnBaseUrl = "http://vv.azureedge.net/res";
+        if (isCdnEnabled) {
+            Module['locateFile'] = function (path, prefix) {
+                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.b245218b.data`;
+                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.df714d05.wasm`;
+                return prefix + path;
+            }
+        }
+
+        function binary(url) {
+            if (isCdnEnabled) {
+                url = `${cdnBaseUrl}/${url}`
+            }
+
             return new Promise((n, r) => {
-                var t = new XMLHttpRequest;
-                t.open("GET", e, !0),
-                t.responseType = "arraybuffer",
-                t.onload = () => { n(t.response) },
-                t.send(null)
+                const t = new XMLHttpRequest;
+                t.open("GET", url, !0),
+                    t.responseType = "arraybuffer",
+                    t.onload = () => { n(t.response) },
+                    t.send(null)
             })
         }
-        
+
         function script(e) {
             return new Promise((n, r) => {
-                var t = document.createElement("script");
+                const t = document.createElement("script");
                 t.src = e,
-                t.onload = () => { n() },
-                document.body.appendChild(t)
+                    t.onload = () => { n() },
+                    document.body.appendChild(t)
             })
         }
-        
-        Promise.all([binary("index.js"), binary("index.wasm")])
+
+        Promise.all([binary("index.705edcaa.js"), binary("index.df714d05.wasm")])
             .then(e => {
                 Module.wasm = e[1];
-                var n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
+                const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
                 script(n)
                     .then(() => { URL.revokeObjectURL(n) })
             })
+
+        window.onhashchange = function () {
+            let hashStr = window.location.hash.substring(1);
+            if (hashStr.match(/^[0-9]+$/)) {
+                Module.ccall("locationHashChangeCallback", null, ["string"], [hashStr]);
+            }
+        }
     </script>
     <script data-goatcounter="https://visa-viz.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
 </body>
+
 </html>
