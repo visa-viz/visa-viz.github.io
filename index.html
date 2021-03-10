@@ -45,7 +45,7 @@
             })
         }
 
-        Promise.all([binary("index.aedbc962.js"), binary("index.a07c7811.wasm")])
+        Promise.all([binary("index.a42f9b29.js"), binary("index.a07c7811.wasm")])
             .then(e => {
                 Module.wasm = e[1];
                 const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
