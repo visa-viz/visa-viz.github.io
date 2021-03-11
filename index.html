@@ -3,6 +3,7 @@
 
 <head>
     <meta charset=utf-8>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 </head>
 
 <body>
@@ -16,8 +17,8 @@
         const cdnBaseUrl = "https://vv.azureedge.net/res";
         if (isCdnEnabled) {
             Module['locateFile'] = function (path, prefix) {
-                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.5008f359.data`;
-                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.a07c7811.wasm`;
+                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.faa6e4ad.data`;
+                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.6b8f0d3f.wasm`;
                 return prefix + path;
             }
         }
@@ -45,7 +46,7 @@
             })
         }
 
-        Promise.all([binary("index.a42f9b29.js"), binary("index.a07c7811.wasm")])
+        Promise.all([binary("index.9464301e.js"), binary("index.6b8f0d3f.wasm")])
             .then(e => {
                 Module.wasm = e[1];
                 const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
