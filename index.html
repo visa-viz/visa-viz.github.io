@@ -18,7 +18,7 @@
         if (isCdnEnabled) {
             Module['locateFile'] = function (path, prefix) {
                 if (path.endsWith(".data")) return `${cdnBaseUrl}/index.faa6e4ad.data`;
-                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.087b6237.wasm`;
+                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.b77df362.wasm`;
                 return prefix + path;
             }
         }
@@ -46,7 +46,7 @@
             })
         }
 
-        Promise.all([binary("index.b97d84a6.js"), binary("index.087b6237.wasm")])
+        Promise.all([binary("index.e93dd6dd.js"), binary("index.b77df362.wasm")])
             .then(e => {
                 Module.wasm = e[1];
                 const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
