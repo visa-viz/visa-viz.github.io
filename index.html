@@ -17,8 +17,8 @@
         const cdnBaseUrl = "https://vv.azureedge.net/res";
         if (isCdnEnabled) {
             Module['locateFile'] = function (path, prefix) {
-                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.faa6e4ad.data`;
-                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.fda1e4c6.wasm`;
+                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.233009af.data`;
+                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.561246c4.wasm`;
                 return prefix + path;
             }
         }
@@ -46,7 +46,7 @@
             })
         }
 
-        Promise.all([binary("index.98ee9414.js"), binary("index.fda1e4c6.wasm")])
+        Promise.all([binary("index.98ee9414.js"), binary("index.561246c4.wasm")])
             .then(e => {
                 Module.wasm = e[1];
                 const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
