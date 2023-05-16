@@ -2,66 +2,24 @@
 <html lang=en-us>
 
 <head>
-    <meta charset=utf-8>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="Refresh" content="0; url='https://visa-viz.ilidemi.com'" />
+    <style>
+        body {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            flex-wrap: wrap;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        }
+    </style>
 </head>
 
 <body>
-    <canvas id="canvas" style="display:block" tabindex=-1></canvas>
-    <script>
-        document.getElementById("canvas").addEventListener('contextmenu', event => event.preventDefault());
-
-        var Module = {};
-
-        const isCdnEnabled = true; // Set by the build script
-        const cdnBaseUrl = "https://vv.azureedge.net/res";
-        if (isCdnEnabled) {
-            Module['locateFile'] = function (path, prefix) {
-                if (path.endsWith(".data")) return `${cdnBaseUrl}/index.faa6e4ad.data`;
-                if (path.endsWith(".wasm")) return `${cdnBaseUrl}/index.b77df362.wasm`;
-                return prefix + path;
-            }
-        }
-
-        function binary(url) {
-            if (isCdnEnabled) {
-                url = `${cdnBaseUrl}/${url}`
-            }
-
-            return new Promise((n, r) => {
-                const t = new XMLHttpRequest;
-                t.open("GET", url, !0),
-                    t.responseType = "arraybuffer",
-                    t.onload = () => { n(t.response) },
-                    t.send(null)
-            })
-        }
-
-        function script(e) {
-            return new Promise((n, r) => {
-                const t = document.createElement("script");
-                t.src = e,
-                    t.onload = () => { n() },
-                    document.body.appendChild(t)
-            })
-        }
-
-        Promise.all([binary("index.e93dd6dd.js"), binary("index.b77df362.wasm")])
-            .then(e => {
-                Module.wasm = e[1];
-                const n = URL.createObjectURL(new Blob([e[0]], { type: "application/javascript" }));
-                script(n)
-                    .then(() => { URL.revokeObjectURL(n) })
-            })
-
-        window.onhashchange = function () {
-            let hashStr = window.location.hash.substring(1);
-            if (hashStr.match(/^[0-9]+$/)) {
-                Module.ccall("locationHashChangeCallback", null, ["string"], [hashStr]);
-            }
-        }
-    </script>
-    <script data-goatcounter="https://visa-viz.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+    <div>
+        The demo moved to <a href="https://visa-viz.ilidemi.com">https://visa-viz.ilidemi.com</a>
+    </div>
 </body>
 
 </html>
